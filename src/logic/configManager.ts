@@ -10,7 +10,6 @@ export const loadConfig = async (): Promise<ConfigEntry[]> => {
 		const data = await fs.readFile(CONFIG_PATH, 'utf-8');
 		return JSON.parse(data) as ConfigEntry[];
 	} catch {
-		// no file yet
 		return [];
 	}
 };
@@ -38,14 +37,21 @@ export const removeConfig = async (
 	channelId: string
 ): Promise<void> => {
 	const all = await loadConfig();
-	const filtered = all.filter(
-		(e) =>
-			!(
-				e.guildId === guildId &&
-				e.userId === userId &&
-				e.channelId === channelId
-			)
-	);
+	let filtered: ConfigEntry[];
+	if (!channelId) {
+		filtered = all.filter(
+			(e) => !(e.guildId === guildId && e.userId === userId)
+		);
+	} else {
+		filtered = all.filter(
+			(e) =>
+				!(
+					e.guildId === guildId &&
+					e.userId === userId &&
+					e.channelId === channelId
+				)
+		);
+	}
 	if (filtered.length === all.length) throw new Error('No such trigger.');
 	await saveConfig(filtered);
 };
