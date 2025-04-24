@@ -3,75 +3,68 @@ import { Transform, type TransformCallback } from 'stream';
 export interface SilenceFillerOptions {
 	/** bytes per PCM frame (samples×channels×2) */
 	frameSize: number;
-	/** ms of silence to wait before inserting one frame */
+	/** ms per frame */
 	frameIntervalMs: number;
 }
 
 /**
- * Inserts exactly one silence‐frame after each gap of `frameIntervalMs`,
- * then waits again. Real audio data is never interleaved with silence.
+ * Ensures a steady stream of PCM frames by inserting silence frames when necessary,
+ * maintaining consistent timing for real-time audio recording.
  */
 export class SilenceFiller extends Transform {
 	private buffer = Buffer.alloc(0);
 	private silenceFrame: Buffer;
-	private timer: NodeJS.Timeout | null = null;
+	private nextPushTime: number;
+	private frameSize: number;
+	private intervalMs: number;
 
 	constructor(private opts: SilenceFillerOptions) {
 		super();
+		this.frameSize = opts.frameSize;
+		this.intervalMs = opts.frameIntervalMs;
 		this.silenceFrame = Buffer.alloc(opts.frameSize, 0);
+		this.nextPushTime = Date.now() + this.intervalMs;
+		this.scheduleNextPush();
+	}
+
+	private scheduleNextPush() {
+		const now = Date.now();
+		const delay = Math.max(0, this.nextPushTime - now);
+		setTimeout(() => {
+			this.pushFrame();
+			this.nextPushTime += this.intervalMs;
+			this.scheduleNextPush();
+		}, delay);
+	}
+
+	private pushFrame() {
+		if (this.buffer.length >= this.frameSize) {
+			const frame = this.buffer.subarray(0, this.frameSize);
+			this.push(frame);
+			this.buffer = this.buffer.subarray(this.frameSize);
+		} else {
+			this.push(this.silenceFrame);
+		}
 	}
 
 	_transform(chunk: Buffer, _enc: BufferEncoding, cb: TransformCallback) {
-		// 1) clear any pending silence
-		if (this.timer) {
-			clearTimeout(this.timer);
-			this.timer = null;
-		}
-
-		// 2) buffer incoming
 		this.buffer = Buffer.concat([this.buffer, chunk]);
-
-		// 3) flush all full frames
-		this.flushFullFrames();
-
-		// 4) schedule first silence after gap
-		this.scheduleSilence();
-
 		cb();
 	}
 
 	_flush(cb: TransformCallback) {
-		// stop any future silence
-		if (this.timer) clearTimeout(this.timer);
-
-		// flush remainder (pad with zeros)
-		while (this.buffer.length > 0) {
-			const out = Buffer.alloc(this.opts.frameSize, 0);
-			const slice = this.buffer.subarray(0, this.opts.frameSize);
-			slice.copy(out);
-			this.push(out);
-			this.buffer = this.buffer.subarray(this.opts.frameSize);
+		// Flush remaining buffer
+		while (this.buffer.length >= this.frameSize) {
+			const frame = this.buffer.subarray(0, this.frameSize);
+			this.push(frame);
+			this.buffer = this.buffer.subarray(this.frameSize);
+		}
+		// Pad with silence if needed
+		if (this.buffer.length > 0) {
+			const pad = Buffer.alloc(this.frameSize - this.buffer.length, 0);
+			const lastFrame = Buffer.concat([this.buffer, pad]);
+			this.push(lastFrame);
 		}
 		cb();
-	}
-
-	/** Immediately push all complete frames from the buffer */
-	private flushFullFrames() {
-		const { frameSize } = this.opts;
-		while (this.buffer.length >= frameSize) {
-			this.push(this.buffer.subarray(0, frameSize));
-			this.buffer = this.buffer.subarray(frameSize);
-		}
-	}
-
-	/** After a silence gap, emit one silence frame, then wait for next gap. */
-	private scheduleSilence() {
-		if (this.timer) return;
-		this.timer = setTimeout(() => {
-			this.push(this.silenceFrame);
-			this.timer = null;
-			// after pushing silence, wait again for next gap
-			this.scheduleSilence();
-		}, this.opts.frameIntervalMs);
 	}
 }

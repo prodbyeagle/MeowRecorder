@@ -19,31 +19,28 @@ export interface RecorderOptions {
 	format?: 'mp3' | 'wav';
 	/** kbps for mp3 */
 	bitrate?: number;
-	/** input sample rate in Hz */
-	sampleRate?: number;
-	/** output channels (1 or 2) */
-	channels?: number;
-	/** playback speed: 1=normal */
-	gain?: number;
-	/** high-pass cutoff (Hz) to remove low-end rumble */
-	highPassHz?: number;
 }
 
 /**
  * Start recording a user's audio from a Discord VoiceConnection.
+ * Records audio as PCM and converts to the specified format when stopped.
  *
- * @returns a `stop()` fn that will tear down only _that_ user’s pipeline
+ * @returns a `stop()` fn that will tear down the pipeline and convert the PCM file
  */
 export async function startRecording(
 	connection: VoiceConnection,
 	userId: string,
 	opts: RecorderOptions = {}
 ): Promise<() => Promise<void>> {
-	const { format = 'mp3', bitrate = 320, sampleRate = 48_000 } = opts;
+	const format = opts.format || 'mp3';
+	const bitrate = opts.bitrate || 192;
+	const sampleRate = 48000;
+	const channels = 2;
 
 	const ts = new Date().toISOString().replace(/[:.]/g, '-');
 	const dir = path.resolve(__dirname, '../../../recordings', userId);
 	await fs.promises.mkdir(dir, { recursive: true });
+	const pcmPath = path.join(dir, `${ts}.pcm`);
 	const outPath = path.join(dir, `${ts}.${format}`);
 
 	const receiver: VoiceReceiver = connection.receiver;
@@ -53,41 +50,47 @@ export async function startRecording(
 
 	const decoder = new prism.opus.Decoder({
 		rate: sampleRate,
-		channels: 1,
+		channels: channels,
 		frameSize: 960,
 	}).on('error', console.error);
 
-	const frameBytes = 960 * 1 * 2;
-	const frameMs = (960 / sampleRate) * 1_000;
+	const frameBytes = 960 * channels * 2;
+	const frameMs = (960 / sampleRate) * 1000; // 20ms
 	const filler = new SilenceFiller({
 		frameSize: frameBytes,
 		frameIntervalMs: frameMs,
 	}).on('error', console.error);
 
-	const ff = Ffmpeg()
-		.setFfmpegPath(ffmpegPath || '')
-		.input(filler)
-		.inputFormat('s16le')
-		.audioChannels(1)
-		.audioFrequency(sampleRate)
-		.audioBitrate(bitrate)
-		.format(format);
-
-	const done = new Promise<void>((resolve, reject) => {
-		ff.once('end', () => {
-			console.log(`✅ Saved ${outPath}`);
-			resolve();
-		});
-		ff.once('error', reject);
-	});
-
-	ff.save(outPath);
-	opusStream.pipe(decoder).pipe(filler);
+	const pcmStream = fs.createWriteStream(pcmPath);
+	opusStream.pipe(decoder).pipe(filler).pipe(pcmStream);
 
 	return async () => {
 		opusStream.destroy();
 		decoder.destroy();
 		filler.end();
+		await new Promise<void>((resolve) => pcmStream.on('finish', resolve));
+
+		const ff = Ffmpeg()
+			.setFfmpegPath(ffmpegPath || '')
+			.input(pcmPath)
+			.inputFormat('s16le')
+			.inputOptions([`-ar ${sampleRate}`, `-ac ${channels}`])
+			.outputOptions([`-ac ${channels}`])
+			.format(format);
+
+		if (format === 'mp3') {
+			ff.audioBitrate(bitrate);
+		}
+
+		const done = new Promise<void>((resolve, reject) => {
+			ff.once('end', () => {
+				console.log(`✅ Saved ${outPath}`);
+				resolve();
+			});
+			ff.once('error', reject);
+		});
+
+		ff.save(outPath);
 		await done;
 	};
 }
