@@ -10,7 +10,7 @@ import { MeowClient } from '@/client';
 
 import { branding } from '@/lib/config';
 
-import { _stopRecording } from '@/modules/recording/Recorder';
+import { _stopRecording } from '@/modules/Recorder';
 
 import type { ICommand } from '@/types';
 

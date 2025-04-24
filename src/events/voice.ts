@@ -10,7 +10,7 @@ import type { MeowClient } from '@/client';
 import { loadConfig } from '@/lib/configManager';
 import { logMessage } from '@/lib/utils';
 
-import { recordings, startRecording } from '@/modules/recording/Recorder';
+import { recordings, startRecording } from '@/modules/Recorder';
 
 type StopFn = () => Promise<void>;
 

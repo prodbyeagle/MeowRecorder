@@ -10,7 +10,7 @@ import {
 
 import { branding } from '@/lib/config';
 
-import { startRecording } from '@/modules/recording/Recorder';
+import { startRecording } from '@/modules/Recorder';
 
 import type { ICommand } from '@/types';
 

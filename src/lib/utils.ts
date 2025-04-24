@@ -1,5 +1,12 @@
 import { config } from '@/lib/config';
 
+const COLORS = {
+	info: '\x1b[36m',
+	warn: '\x1b[33m',
+	error: '\x1b[31m',
+	reset: '\x1b[0m',
+};
+
 /**
  * Logs the provided message with color-coded log levels.
  *
@@ -13,5 +20,8 @@ export const logMessage = (
 	level: 'info' | 'warn' | 'error' = 'info'
 ): void => {
 	if (level === 'info' && !config.dev) return;
-	console[level](`${level.toUpperCase()}: ${message}`);
+
+	const color = COLORS[level];
+	const reset = COLORS.reset;
+	console.log(`${color}${level.toUpperCase()}:${reset} ${message}`);
 };

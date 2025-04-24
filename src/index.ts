@@ -5,13 +5,13 @@ import { registerVoiceEvents } from './events/voice';
 import { config } from './lib/config';
 import { logMessage } from './lib/utils';
 
+export const client = new MeowClient();
+
 /**
  * Initializes the bot client, event listeners, and handles bot login.
  */
 const initializeBot = async () => {
 	try {
-		const client = new MeowClient();
-
 		readyEvent(client);
 		interactionCreateEvent(client);
 		registerVoiceEvents(client);

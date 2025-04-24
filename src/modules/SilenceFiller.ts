@@ -50,22 +50,13 @@ export class SilenceFiller extends Transform {
 			const frame = this.buffer.subarray(0, this.frameSize);
 			this.push(frame);
 			this.buffer = this.buffer.subarray(this.frameSize);
-			logMessage(`Pushed audio frame (${frame.length} bytes)`, 'info');
 		} else {
 			this.push(this.silenceFrame);
-			logMessage(
-				`Inserted silence frame (${this.silenceFrame.length} bytes)`,
-				'info'
-			);
 		}
 	}
 
 	_transform(chunk: Buffer, _enc: BufferEncoding, cb: TransformCallback) {
 		this.buffer = Buffer.concat([this.buffer, chunk]);
-		logMessage(
-			`Received chunk (${chunk.length} bytes), buffer size: ${this.buffer.length}`,
-			'info'
-		);
 		cb();
 	}
 

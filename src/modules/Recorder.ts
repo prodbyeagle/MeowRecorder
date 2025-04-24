@@ -6,13 +6,17 @@ import {
 	VoiceConnection,
 	VoiceReceiver,
 } from '@discordjs/voice';
+import type { Client, TextChannel } from 'discord.js';
 import ffmpegPath from 'ffmpeg-static';
 import Ffmpeg from 'fluent-ffmpeg';
 import prism from 'prism-media';
 
+import { config } from '@/lib/config';
 import { logMessage } from '@/lib/utils';
 
-import { SilenceFiller } from '@/modules/recording/SilenceFiller';
+import { SilenceFiller } from '@/modules/SilenceFiller';
+
+import { client } from '..';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -47,13 +51,18 @@ export async function startRecording(
 	const sampleRate = 48000;
 	const channels = 2;
 
-	const ts = new Date().toISOString().replace(/[:.]/g, '-');
+	const user = await client.users.fetch(userId);
+	const usernameSafe = user.username.replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
+	const ts = new Date().toISOString().replace(/[-:T]/g, '').split('.')[0]; // YYYYMMDDHHMMSS
+	const filename = `${usernameSafe}_${userId}_${ts}`;
+
 	const dir = path.resolve(__dirname, '../../../recordings', userId);
 	await fs.promises.mkdir(dir, { recursive: true });
-	const pcmPath = path.join(dir, `${ts}.pcm`);
-	const outPath = path.join(dir, `${ts}.${format}`);
 
-	logMessage(`Recording started for user: ${userId}`, 'info');
+	const pcmPath = path.join(dir, `${filename}.pcm`);
+	const outPath = path.join(dir, `${filename}.${format}`);
+
+	logMessage(`Recording started for user: ${userId} (${user.username})`, 'info');
 
 	const receiver: VoiceReceiver = connection.receiver;
 	const opusStream = receiver
@@ -143,10 +152,51 @@ export async function _stopRecording(userId: string): Promise<void> {
 		}
 
 		const done = new Promise<void>((resolve, reject) => {
-			ff.once('end', () => {
+			ff.once('end', async () => {
 				logMessage(`Saved recording to ${outPath}`, 'info');
+
+				try {
+					await fs.promises.unlink(pcmPath);
+					logMessage(
+						`Deleted intermediate PCM file: ${pcmPath}`,
+						'info'
+					);
+				} catch (unlinkErr) {
+					logMessage(
+						`Failed to delete PCM file: ${(unlinkErr as Error).message}`,
+						'warn'
+					);
+				}
+
+				try {
+					const channel = await client.channels.fetch(
+						config.recordingChannel
+					);
+					if (channel?.isTextBased()) {
+						await (channel as TextChannel).send({
+							files: [outPath],
+							content: `🎙️ Recording finished for <@${userId}>`,
+						});
+						logMessage(
+							`Recording sent to channel: ${config.recordingChannel}`,
+							'info'
+						);
+					} else {
+						logMessage(
+							`Invalid recordingChannel ID or not a text channel.`,
+							'warn'
+						);
+					}
+				} catch (err) {
+					logMessage(
+						`Failed to send recording to channel: ${(err as Error).message}`,
+						'error'
+					);
+				}
+
 				resolve();
 			});
+
 			ff.once('error', (err) => {
 				logMessage(`FFmpeg error: ${err.message}`, 'error');
 				reject(err);
