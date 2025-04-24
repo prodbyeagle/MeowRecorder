@@ -1,6 +1,7 @@
 import { joinVoiceChannel } from '@discordjs/voice';
 import {
 	ChatInputCommandInteraction,
+	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
@@ -23,7 +24,7 @@ export const joinCommand: ICommand = {
 		if (!member || !('voice' in member) || !member.voice.channel) {
 			await interaction.reply({
 				content: 'Join a VC first.',
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
@@ -33,7 +34,7 @@ export const joinCommand: ICommand = {
 			if (!guild || !voiceChannel) {
 				await interaction.reply({
 					content: 'Could not resolve guild or voice channel.',
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				});
 				return;
 			}
@@ -44,15 +45,15 @@ export const joinCommand: ICommand = {
 				adapterCreator: guild.voiceAdapterCreator,
 			});
 
-			await startRecording(connection, guild.id, interaction.user.id);
+			await startRecording(connection, interaction.user.id);
 			await interaction.reply({
 				content: '🔴 Recording started!',
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		} catch (err) {
 			await interaction.reply({
 				content: '❌ Failed to start recording.',
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		}
 	},

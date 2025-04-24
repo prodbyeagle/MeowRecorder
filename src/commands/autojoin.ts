@@ -1,6 +1,7 @@
 import {
 	ChannelType,
 	ChatInputCommandInteraction,
+	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
@@ -53,11 +54,11 @@ export const autojoinCommand: ICommand = {
 		if (!guild) {
 			await interaction.reply({
 				content: 'Must be in a guild.',
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
 			if (options.getSubcommand() === 'add') {

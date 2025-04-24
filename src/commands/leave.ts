@@ -1,6 +1,7 @@
 import { MeowClient } from '@/client';
 import {
 	ChatInputCommandInteraction,
+	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
@@ -21,7 +22,7 @@ export const leaveCommand: ICommand = {
 		if (!guildId) {
 			await interaction.reply({
 				content: 'Guild unknown.',
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
@@ -30,7 +31,7 @@ export const leaveCommand: ICommand = {
 		if (!stopper) {
 			await interaction.reply({
 				content: 'Nothing to stop.',
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
@@ -38,7 +39,7 @@ export const leaveCommand: ICommand = {
 		client.manualStopper.delete(guildId);
 		await interaction.reply({
 			content: 'Left and stopped recording.',
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	},
 };
