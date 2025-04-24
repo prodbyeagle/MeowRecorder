@@ -6,7 +6,7 @@ import {
 	VoiceConnection,
 	VoiceReceiver,
 } from '@discordjs/voice';
-import type { Client, TextChannel } from 'discord.js';
+import type { TextChannel } from 'discord.js';
 import ffmpegPath from 'ffmpeg-static';
 import Ffmpeg from 'fluent-ffmpeg';
 import prism from 'prism-media';
