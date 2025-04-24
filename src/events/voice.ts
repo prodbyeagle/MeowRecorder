@@ -7,10 +7,10 @@ import { Events, VoiceState } from 'discord.js';
 
 import type { MeowClient } from '@/client';
 
+import { loadConfig } from '@/lib/configManager';
 import { logMessage } from '@/lib/utils';
 
-import { loadConfig } from '@/modules/configManager';
-import { startRecording } from '@/modules/recording/Recorder';
+import { recordings, startRecording } from '@/modules/recording/Recorder';
 
 type StopFn = () => Promise<void>;
 
@@ -19,6 +19,7 @@ export const registerVoiceEvents = (client: MeowClient) => {
 		Events.VoiceStateUpdate,
 		async (oldState: VoiceState, newState: VoiceState) => {
 			if (oldState.channelId === newState.channelId) return;
+
 			const cfgs = await loadConfig();
 			const match = cfgs.find(
 				(c) =>
@@ -40,28 +41,28 @@ export const registerVoiceEvents = (client: MeowClient) => {
 					selfMute: true,
 				});
 
-				connection.once(VoiceConnectionStatus.Ready, async () => {
-					const vc = await newState.guild.channels.fetch(
-						match.channelId
-					);
-					if (!vc?.isVoiceBased()) return;
-					for (const m of vc.members.values()) {
-						if (!m.user.bot) {
-							try {
-								const stop = await startRecording(
-									connection,
-									m.id
-								);
-								active.set(m.id, stop);
-							} catch (e) {
-								logMessage(
-									`Recording error [${m.id}]: ${e}`,
-									'error'
-								);
-							}
+				if (connection.state.status !== VoiceConnectionStatus.Ready) {
+					await new Promise<void>((resolve) => {
+						connection.once(VoiceConnectionStatus.Ready, resolve);
+					});
+				}
+
+				const vc = await newState.guild.channels.fetch(match.channelId);
+				if (!vc?.isVoiceBased()) return;
+
+				for (const m of vc.members.values()) {
+					if (!m.user.bot && !recordings.has(m.id)) {
+						try {
+							const stop = await startRecording(connection, m.id);
+							active.set(m.id, stop);
+						} catch (e) {
+							logMessage(
+								`Recording error [${m.id}]: ${e}`,
+								'error'
+							);
 						}
 					}
-				});
+				}
 
 				const handler = async (o: VoiceState, n: VoiceState) => {
 					const left =
@@ -75,7 +76,11 @@ export const registerVoiceEvents = (client: MeowClient) => {
 						await active.get(o.id)!().catch(console.error);
 						active.delete(o.id);
 					}
-					if (joined && !active.has(n.id) && !n.member?.user.bot) {
+					if (
+						joined &&
+						!n.member?.user.bot &&
+						!recordings.has(n.id)
+					) {
 						try {
 							const stop = await startRecording(connection, n.id);
 							active.set(n.id, stop);
