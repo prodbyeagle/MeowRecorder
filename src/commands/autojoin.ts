@@ -8,11 +8,9 @@ import {
 } from 'discord.js';
 
 import { branding } from '@/lib/config';
+import { addConfig, loadConfig, removeConfig } from '@/lib/configManager';
 
-import { addConfig, loadConfig, removeConfig } from '@/modules/configManager';
-
-import type { ICommand } from '@/types';
-import type { ConfigEntry } from '@/types/Config';
+import type { ConfigEntry, ICommand } from '@/types';
 
 export const autojoinCommand: ICommand = {
 	name: 'autojoin',
