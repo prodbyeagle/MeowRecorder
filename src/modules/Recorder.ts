@@ -52,9 +52,11 @@ export async function startRecording(
 	const channels = 2;
 
 	const user = await client.users.fetch(userId);
-	const usernameSafe = user.username.replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
+	const usernameSafe = user.username
+		.replace(/[^a-z0-9_\-]/gi, '_')
+		.toLowerCase();
 	const ts = new Date().toISOString().replace(/[-:T]/g, '').split('.')[0]; // YYYYMMDDHHMMSS
-	const filename = `${usernameSafe}_${userId}_${ts}`;
+	const filename = `${usernameSafe}_${ts}`;
 
 	const dir = path.resolve(__dirname, '../../../recordings', userId);
 	await fs.promises.mkdir(dir, { recursive: true });
@@ -62,7 +64,10 @@ export async function startRecording(
 	const pcmPath = path.join(dir, `${filename}.pcm`);
 	const outPath = path.join(dir, `${filename}.${format}`);
 
-	logMessage(`Recording started for user: ${userId} (${user.username})`, 'info');
+	logMessage(
+		`Recording started for user: ${userId} (${user.username})`,
+		'info'
+	);
 
 	const receiver: VoiceReceiver = connection.receiver;
 	const opusStream = receiver
