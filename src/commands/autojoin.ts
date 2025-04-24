@@ -1,10 +1,13 @@
 import {
 	ChannelType,
 	ChatInputCommandInteraction,
+	EmbedBuilder,
 	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
+
+import { branding } from '@/lib/config';
 
 import { addConfig, loadConfig, removeConfig } from '@/logic/configManager';
 
@@ -52,8 +55,12 @@ export const autojoinCommand: ICommand = {
 	): Promise<void> => {
 		const { guild, options } = interaction;
 		if (!guild) {
+			const embed = new EmbedBuilder()
+				.setTitle('Guild Only')
+				.setDescription('This command must be used in a guild.')
+				.setColor(branding.AccentColor!);
 			await interaction.reply({
-				content: 'Must be in a guild.',
+				embeds: [embed],
 				flags: MessageFlags.Ephemeral,
 			});
 			return;
@@ -70,9 +77,15 @@ export const autojoinCommand: ICommand = {
 					channelId: channel.id,
 				};
 				await addConfig(entry);
-				await interaction.editReply(
-					`✅ Auto‐record added: when <@${user.id}> joins <#${channel.id}>`
-				);
+				const embed = new EmbedBuilder()
+					.setTitle('Auto-record Added')
+					.setDescription(
+						`When <@${user.id}> joins <#${channel.id}> recording will start automatically.`
+					)
+					.setColor(branding.SuccessColor!);
+				await interaction.editReply({
+					embeds: [embed],
+				});
 			} else {
 				const user = options.getUser('user', true);
 				const all = await loadConfig();
@@ -82,13 +95,26 @@ export const autojoinCommand: ICommand = {
 				if (after === before) {
 					throw new Error('No triggers found for that user.');
 				}
-				await interaction.editReply(
-					`🗑️ Auto‐record triggers removed for <@${user.id}>`
-				);
+				const embed = new EmbedBuilder()
+					.setTitle('Auto-record Triggers Removed')
+					.setDescription(
+						`All auto-record triggers removed for <@${user.id}>.`
+					)
+					.setColor(branding.InfoColor!);
+				await interaction.editReply({
+					embeds: [embed],
+				});
 			}
 		} catch (err: unknown) {
-			const msg = err instanceof Error ? err.message : 'Unknown error';
-			await interaction.editReply(`❌ ${msg}`);
+			const embed = new EmbedBuilder()
+				.setTitle('Error')
+				.setDescription(
+					err instanceof Error ? err.message : 'Unknown error'
+				)
+				.setColor(branding.AccentColor!);
+			await interaction.editReply({
+				embeds: [embed],
+			});
 		}
 	},
 };

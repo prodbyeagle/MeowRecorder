@@ -1,4 +1,4 @@
-import { config } from '@/config/config';
+import { config } from '@/lib/config';
 
 /**
  * Logs the provided message with color-coded log levels.

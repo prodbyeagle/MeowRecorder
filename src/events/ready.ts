@@ -3,7 +3,7 @@ import { Events } from 'discord.js';
 
 import { logMessage } from '@/lib/utils';
 
-import { initializeCommands } from './initializeCommands';
+import { initializeCommands } from '@/events/initializeCommands';
 
 /**
  * Handles the `ClientReady` event.

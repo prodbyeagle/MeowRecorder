@@ -1,10 +1,12 @@
 import { joinVoiceChannel } from '@discordjs/voice';
 import {
 	ChatInputCommandInteraction,
-	MessageFlags,
+	EmbedBuilder,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
+
+import { branding } from '@/lib/config';
 
 import { startRecording } from '@/logic/recorder';
 
@@ -22,19 +24,24 @@ export const joinCommand: ICommand = {
 	): Promise<void> => {
 		const member = interaction.member;
 		if (!member || !('voice' in member) || !member.voice.channel) {
-			await interaction.reply({
-				content: 'Join a VC first.',
-				flags: MessageFlags.Ephemeral,
-			});
+			const embed = new EmbedBuilder()
+				.setTitle('Voice Channel Required')
+				.setDescription('Join a voice channel first.')
+				.setColor(branding.InfoColor!);
+			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' });
 			return;
 		}
 		try {
 			const guild = interaction.guild;
 			const voiceChannel = member.voice.channel;
 			if (!guild || !voiceChannel) {
+				const embed = new EmbedBuilder()
+					.setTitle('🚫 Could Not Join')
+					.setDescription('Could not resolve guild or voice channel.')
+					.setColor(branding.AccentColor!);
 				await interaction.reply({
-					content: 'Could not resolve guild or voice channel.',
-					flags: MessageFlags.Ephemeral,
+					embeds: [embed],
+					flags: 'Ephemeral',
 				});
 				return;
 			}
@@ -46,15 +53,17 @@ export const joinCommand: ICommand = {
 			});
 
 			await startRecording(connection, interaction.user.id);
-			await interaction.reply({
-				content: '🔴 Recording started!',
-				flags: MessageFlags.Ephemeral,
-			});
+			const embed = new EmbedBuilder()
+				.setTitle('Recording Started')
+				.setDescription('🔴 Recording started!')
+				.setColor(branding.SuccessColor!);
+			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' });
 		} catch (err) {
-			await interaction.reply({
-				content: '❌ Failed to start recording.',
-				flags: MessageFlags.Ephemeral,
-			});
+			const embed = new EmbedBuilder()
+				.setTitle('Error')
+				.setDescription('❌ Failed to start recording.')
+				.setColor(branding.AccentColor!);
+			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' });
 		}
 	},
 };

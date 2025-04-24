@@ -1,10 +1,12 @@
 import { MeowClient } from '@/client';
 import {
 	ChatInputCommandInteraction,
-	MessageFlags,
+	EmbedBuilder,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
+
+import { branding } from '@/lib/config';
 
 import type { ICommand } from '@/types';
 
@@ -20,26 +22,31 @@ export const leaveCommand: ICommand = {
 	): Promise<void> => {
 		const guildId = interaction.guildId;
 		if (!guildId) {
-			await interaction.reply({
-				content: 'Guild unknown.',
-				flags: MessageFlags.Ephemeral,
-			});
+			const embed = new EmbedBuilder()
+				.setTitle('Guild Unknown')
+				.setDescription('This command must be run in a server.')
+				.setColor(branding.AccentColor!);
+			await interaction.reply({ embeds: [embed], ephemeral: true });
 			return;
 		}
 		const client = interaction.client as MeowClient;
 		const stopper = client.manualStopper.get(guildId);
 		if (!stopper) {
-			await interaction.reply({
-				content: 'Nothing to stop.',
-				flags: MessageFlags.Ephemeral,
-			});
+			const embed = new EmbedBuilder()
+				.setTitle('Nothing to Stop')
+				.setDescription('There is no active recording to stop.')
+				.setColor(branding.InfoColor!);
+			await interaction.reply({ embeds: [embed], ephemeral: true });
 			return;
 		}
 		await stopper();
 		client.manualStopper.delete(guildId);
-		await interaction.reply({
-			content: 'Left and stopped recording.',
-			flags: MessageFlags.Ephemeral,
-		});
+		const embed = new EmbedBuilder()
+			.setTitle('Left & Stopped Recording')
+			.setDescription(
+				'The bot has left the voice channel and stopped recording.'
+			)
+			.setColor(branding.SuccessColor!);
+		await interaction.reply({ embeds: [embed], ephemeral: true });
 	},
 };

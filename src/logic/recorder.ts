@@ -7,7 +7,7 @@ import {
 } from '@discordjs/voice';
 import prism from 'prism-media';
 
-import { WAVConverter } from './pcmToWav';
+import { WAVConverter } from '@/logic/wav-converter';
 
 export const startRecording = async (
 	connection: VoiceConnection,

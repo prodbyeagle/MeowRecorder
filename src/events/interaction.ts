@@ -1,7 +1,7 @@
 import { MeowClient } from '@/client';
-import { branding } from '@/config/config';
 import { EmbedBuilder, Events, MessageFlags } from 'discord.js';
 
+import { branding } from '@/lib/config';
 import { logMessage } from '@/lib/utils';
 
 /**

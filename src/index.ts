@@ -1,8 +1,8 @@
 import { MeowClient } from './client';
-import { config } from './config/config';
 import { interactionCreateEvent } from './events/interaction';
 import { readyEvent } from './events/ready';
 import { registerVoiceEvents } from './events/voice';
+import { config } from './lib/config';
 import { logMessage } from './lib/utils';
 
 /**
