@@ -1,4 +1,8 @@
-import { joinVoiceChannel, VoiceConnectionStatus } from '@discordjs/voice';
+import {
+	joinVoiceChannel,
+	VoiceConnection,
+	VoiceConnectionStatus,
+} from '@discordjs/voice';
 import { Events, VoiceState } from 'discord.js';
 
 import type { MeowClient } from '@/client';
@@ -8,31 +12,27 @@ import { logMessage } from '@/lib/utils';
 import { loadConfig } from '@/modules/configManager';
 import { startRecording } from '@/modules/recording/Recorder';
 
-type ActiveRecordingMap = Map<string, () => Promise<void>>;
-
-/**
- * Registers the voiceStateUpdate event for auto-join and recording.
- * @param client The Discord client instance.
- */
+type StopFn = () => Promise<void>;
 
 export const registerVoiceEvents = (client: MeowClient) => {
 	client.on(
 		Events.VoiceStateUpdate,
 		async (oldState: VoiceState, newState: VoiceState) => {
 			if (oldState.channelId === newState.channelId) return;
-
 			const cfgs = await loadConfig();
 			const match = cfgs.find(
-				(cfg) =>
-					cfg.guildId === newState.guild.id &&
-					cfg.userId === newState.id &&
-					cfg.channelId === newState.channelId
+				(c) =>
+					c.guildId === newState.guild.id &&
+					c.userId === newState.id &&
+					c.channelId === newState.channelId
 			);
-
 			if (!match) return;
 
+			let connection: VoiceConnection;
+			const active = new Map<string, StopFn>();
+
 			try {
-				const connection = joinVoiceChannel({
+				connection = joinVoiceChannel({
 					channelId: match.channelId,
 					guildId: match.guildId,
 					adapterCreator: newState.guild.voiceAdapterCreator,
@@ -40,25 +40,22 @@ export const registerVoiceEvents = (client: MeowClient) => {
 					selfMute: true,
 				});
 
-				const activeRecordings: ActiveRecordingMap = new Map();
-
 				connection.once(VoiceConnectionStatus.Ready, async () => {
-					const voiceChannel = await newState.guild.channels.fetch(
+					const vc = await newState.guild.channels.fetch(
 						match.channelId
 					);
-					if (!voiceChannel?.isVoiceBased()) return;
-
-					for (const member of voiceChannel.members.values()) {
-						if (!member.user.bot) {
+					if (!vc?.isVoiceBased()) return;
+					for (const m of vc.members.values()) {
+						if (!m.user.bot) {
 							try {
 								const stop = await startRecording(
 									connection,
-									member.id
+									m.id
 								);
-								activeRecordings.set(member.id, stop);
-							} catch (err) {
+								active.set(m.id, stop);
+							} catch (e) {
 								logMessage(
-									`Recording error for ${member.id}: ${String(err)}`,
+									`Recording error [${m.id}]: ${e}`,
 									'error'
 								);
 							}
@@ -74,25 +71,17 @@ export const registerVoiceEvents = (client: MeowClient) => {
 						n.channelId === match.channelId &&
 						o.channelId !== match.channelId;
 
-					if (left && activeRecordings.has(n.id)) {
-						const stop = activeRecordings.get(n.id);
-						if (stop) {
-							await stop().catch(console.error);
-							activeRecordings.delete(n.id);
-						}
+					if (left && active.has(o.id)) {
+						await active.get(o.id)!().catch(console.error);
+						active.delete(o.id);
 					}
-
-					if (
-						joined &&
-						!activeRecordings.has(n.id) &&
-						!n.member?.user.bot
-					) {
+					if (joined && !active.has(n.id) && !n.member?.user.bot) {
 						try {
 							const stop = await startRecording(connection, n.id);
-							activeRecordings.set(n.id, stop);
-						} catch (err) {
+							active.set(n.id, stop);
+						} catch (e) {
 							logMessage(
-								`Failed to start recording for ${n.id}: ${String(err)}`,
+								`Failed to start recording [${n.id}]: ${e}`,
 								'error'
 							);
 						}
@@ -102,21 +91,25 @@ export const registerVoiceEvents = (client: MeowClient) => {
 						n.id === match.userId &&
 						n.channelId !== match.channelId
 					) {
-						for (const stop of activeRecordings.values()) {
+						client.off(Events.VoiceStateUpdate, handler);
+
+						for (const stop of active.values()) {
 							await stop().catch(console.error);
 						}
-						activeRecordings.clear();
-						connection.destroy();
-						client.off(Events.VoiceStateUpdate, handler);
+						active.clear();
+
+						if (
+							connection.state.status !==
+							VoiceConnectionStatus.Destroyed
+						) {
+							connection.destroy();
+						}
 					}
 				};
 
 				client.on(Events.VoiceStateUpdate, handler);
 			} catch (err) {
-				logMessage(
-					`Auto‐join/record error: ${err instanceof Error ? err.message : err}`,
-					'error'
-				);
+				logMessage(`Auto-join/record error: ${err}`, 'error');
 			}
 		}
 	);
