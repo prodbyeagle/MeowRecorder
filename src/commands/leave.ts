@@ -2,6 +2,7 @@ import { MeowClient } from '@/client';
 import {
 	ChatInputCommandInteraction,
 	EmbedBuilder,
+	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
@@ -26,7 +27,10 @@ export const leaveCommand: ICommand = {
 				.setTitle('Guild Unknown')
 				.setDescription('This command must be run in a server.')
 				.setColor(branding.AccentColor!);
-			await interaction.reply({ embeds: [embed], ephemeral: true });
+			await interaction.reply({
+				embeds: [embed],
+				flags: MessageFlags.Ephemeral,
+			});
 			return;
 		}
 		const client = interaction.client as MeowClient;
@@ -36,7 +40,10 @@ export const leaveCommand: ICommand = {
 				.setTitle('Nothing to Stop')
 				.setDescription('There is no active recording to stop.')
 				.setColor(branding.InfoColor!);
-			await interaction.reply({ embeds: [embed], ephemeral: true });
+			await interaction.reply({
+				embeds: [embed],
+				flags: MessageFlags.Ephemeral,
+			});
 			return;
 		}
 		await stopper();
@@ -47,6 +54,9 @@ export const leaveCommand: ICommand = {
 				'The bot has left the voice channel and stopped recording.'
 			)
 			.setColor(branding.SuccessColor!);
-		await interaction.reply({ embeds: [embed], ephemeral: true });
+		await interaction.reply({
+			embeds: [embed],
+			flags: MessageFlags.Ephemeral,
+		});
 	},
 };
