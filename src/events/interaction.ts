@@ -79,7 +79,7 @@ export const interactionCreateEvent = (client: MeowClient) => {
 			const errorEmbed = new EmbedBuilder()
 				.setTitle('❌ Command Error')
 				.setDescription('There was an error executing this command!')
-				.setColor(branding.AccentColor ?? null)
+				.setColor(branding.AccentColor!)
 				.setTimestamp();
 
 			try {
