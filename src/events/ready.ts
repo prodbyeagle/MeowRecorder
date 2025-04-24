@@ -1,5 +1,5 @@
 import { MeowClient } from '@/client';
-import { Events } from 'discord.js';
+import { ActivityType, Events } from 'discord.js';
 
 import { logMessage } from '@/lib/utils';
 
@@ -16,7 +16,19 @@ export const readyEvent = (client: MeowClient) => {
 	client.on(Events.ClientReady, async () => {
 		if (client.user) {
 			try {
+				client.user.setPresence({
+					activities: [
+						{
+							type: ActivityType.Custom,
+							name: 'custom',
+							state: '💀 Crying cause of Psychiatrie. Please help me. I cant handle this.',
+						},
+					],
+					status: 'dnd',
+				});
+
 				initializeCommands(client);
+
 				logMessage(
 					'Bot is ready and commands are initialized.',
 					'info'
