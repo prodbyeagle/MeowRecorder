@@ -1,9 +1,10 @@
-import { MeowClient } from '@/client';
 import { REST, Routes } from 'discord.js';
 
 import { autojoinCommand } from '@/commands/autojoin';
 import { joinCommand } from '@/commands/join';
 import { leaveCommand } from '@/commands/leave';
+
+import { MeowClient } from '@/client';
 
 import { config } from '@/lib/config';
 import { logMessage } from '@/lib/utils';

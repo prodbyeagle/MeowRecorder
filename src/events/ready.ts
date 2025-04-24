@@ -1,5 +1,6 @@
-import { MeowClient } from '@/client';
 import { ActivityType, Events } from 'discord.js';
+
+import { MeowClient } from '@/client';
 
 import { logMessage } from '@/lib/utils';
 
@@ -21,7 +22,7 @@ export const readyEvent = (client: MeowClient) => {
 						{
 							type: ActivityType.Custom,
 							name: 'custom',
-							state: '💀 Crying cause of Psychiatrie. Please help me. I cant handle this.',
+							state: '💀 Ich kann das alles nicht mehr hören. Bitte helft mir hier zu verschwinden, das muss ein Ende haben.',
 						},
 					],
 					status: 'dnd',

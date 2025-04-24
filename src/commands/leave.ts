@@ -1,4 +1,3 @@
-import { MeowClient } from '@/client';
 import {
 	ChatInputCommandInteraction,
 	EmbedBuilder,
@@ -6,6 +5,8 @@ import {
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
+
+import { MeowClient } from '@/client';
 
 import { branding } from '@/lib/config';
 

@@ -1,4 +1,3 @@
-import { startRecording } from '@/recording/Recorder';
 import { joinVoiceChannel } from '@discordjs/voice';
 import {
 	ChatInputCommandInteraction,
@@ -8,6 +7,8 @@ import {
 } from 'discord.js';
 
 import { branding } from '@/lib/config';
+
+import { startRecording } from '@/modules/recording/Recorder';
 
 import type { ICommand } from '@/types';
 
