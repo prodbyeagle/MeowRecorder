@@ -7,6 +7,8 @@ import {
 } from '@discordjs/voice';
 import prism from 'prism-media';
 
+import { WAVConverter } from './pcmToWav';
+
 export const startRecording = async (
 	connection: VoiceConnection,
 	userId: string
@@ -43,9 +45,19 @@ export const startRecording = async (
 	opusStream.pipe(opusDecoder).pipe(output);
 
 	return async () => {
+		await new Promise((res) => setTimeout(res, 500));
 		opusStream.destroy();
 		opusDecoder.destroy();
 		output.end();
 		connection.destroy();
+
+		const wavPath = filepath.replace(/\.pcm$/, '.wav');
+		try {
+			await WAVConverter(filepath, wavPath);
+			console.log(`Converted to WAV: ${wavPath}`);
+		} catch (err) {
+			console.error('PCM to WAV conversion failed:', err);
+		}
+		console.log('Recording stopped.');
 	};
 };
