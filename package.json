@@ -1,0 +1,25 @@
+{
+	"name": "psychiatrie-recorder",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"cook": "bun --bun run ./src/index.ts",
+		"serve": "bun build --outdir=target --sourcemap --target=node --minify ./src/index.ts",
+		"lint": "bunx eslint 'src/**'",
+		"format": "bunx prettier --check --write './src/**/*.{ts,js,json,md}'"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"eslint": "^9.25.1"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@discordjs/voice": "^0.18.0",
+		"@ianvs/prettier-plugin-sort-imports": "^4.4.1",
+		"discord.js": "^14.18.0",
+		"jiti": "^2.4.2"
+	}
+}

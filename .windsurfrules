@@ -1,0 +1,20 @@
+Before diving into the best practices, please note that you may need to adapt the globs depending on your project's structure and file types.
+
+-   Use `Intents` correctly to subscribe to necessary events
+-   Implement proper error handling with `try/catch` and `process.on('unhandledRejection')`
+-   Use `MessageEmbed` for rich message formatting
+-   Organize commands using `Collection` for easy management
+-   Implement rate limiting to avoid API abuse
+
+-   Use `joinVoiceChannel` with correct options for joining voice channels
+-   Implement `createAudioResource` for playing audio files
+-   Use `VoiceConnection` events to handle disconnections and errors
+-   Implement proper audio stream management to prevent memory leaks
+-   Use `setSpeaking` to indicate when the bot is speaking
+
+-   Use strict null checks to prevent null/undefined errors
+-   Prefer interfaces over types for object shapes
+-   Use type guards and assertions for runtime type checking
+-   Implement proper type inference to reduce explicit type annotations
+-   Use enums or union types for fixed sets of values
+-   Dont use any for types.
