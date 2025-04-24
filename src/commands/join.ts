@@ -1,7 +1,9 @@
 import { joinVoiceChannel } from '@discordjs/voice';
 import {
+	ChannelType,
 	ChatInputCommandInteraction,
 	EmbedBuilder,
+	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js';
@@ -14,34 +16,69 @@ import type { ICommand } from '@/types';
 
 export const joinCommand: ICommand = {
 	name: 'join',
-	description: 'Bot joins your voice channel and records you',
+	description: 'Bot joins a voice channel and records',
 	data: new SlashCommandBuilder()
 		.setName('join')
-		.setDescription('Bot joins your voice channel and records you')
-		.setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+		.setDescription('Bot joins a voice channel and starts recording')
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+		.addChannelOption((option) =>
+			option
+				.setName('channel')
+				.setDescription('Optional voice channel to join')
+				.addChannelTypes(ChannelType.GuildVoice)
+				.setRequired(false)
+		),
 	execute: async (
 		interaction: ChatInputCommandInteraction
 	): Promise<void> => {
+		const selectedChannel = interaction.options.getChannel('channel');
 		const member = interaction.member;
-		if (!member || !('voice' in member) || !member.voice.channel) {
-			const embed = new EmbedBuilder()
-				.setTitle('Voice Channel Required')
-				.setDescription('Join a voice channel first.')
-				.setColor(branding.InfoColor!);
-			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' });
+
+		if (!member || !('voice' in member)) {
+			await interaction.reply({
+				embeds: [
+					new EmbedBuilder()
+						.setTitle('❌ Error')
+						.setDescription('Could not resolve member voice state.')
+						.setColor(branding.AccentColor!),
+				],
+				flags: MessageFlags.Ephemeral,
+			});
 			return;
 		}
+
+		const fallbackChannel = member.voice.channel;
+		const voiceChannel =
+			(selectedChannel?.type === ChannelType.GuildVoice
+				? selectedChannel
+				: null) ?? fallbackChannel;
+
+		if (!voiceChannel) {
+			await interaction.reply({
+				embeds: [
+					new EmbedBuilder()
+						.setTitle('Voice Channel Required')
+						.setDescription(
+							'Join a voice channel or specify one using the `channel` option.'
+						)
+						.setColor(branding.InfoColor!),
+				],
+				flags: MessageFlags.Ephemeral,
+			});
+			return;
+		}
+
 		try {
 			const guild = interaction.guild;
-			const voiceChannel = member.voice.channel;
-			if (!guild || !voiceChannel) {
-				const embed = new EmbedBuilder()
-					.setTitle('🚫 Could Not Join')
-					.setDescription('Could not resolve guild or voice channel.')
-					.setColor(branding.AccentColor!);
+			if (!guild) {
 				await interaction.reply({
-					embeds: [embed],
-					flags: 'Ephemeral',
+					embeds: [
+						new EmbedBuilder()
+							.setTitle('🚫 Could Not Join')
+							.setDescription('Guild not found.')
+							.setColor(branding.AccentColor!),
+					],
+					flags: MessageFlags.Ephemeral,
 				});
 				return;
 			}
@@ -53,17 +90,30 @@ export const joinCommand: ICommand = {
 			});
 
 			await startRecording(connection, interaction.user.id);
-			const embed = new EmbedBuilder()
-				.setTitle('Recording Started')
-				.setDescription('🔴 Recording started!')
-				.setColor(branding.SuccessColor!);
-			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' });
-		} catch (err) {
-			const embed = new EmbedBuilder()
-				.setTitle('Error')
-				.setDescription('❌ Failed to start recording.')
-				.setColor(branding.AccentColor!);
-			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' });
+
+			await interaction.reply({
+				embeds: [
+					new EmbedBuilder()
+						.setTitle('Recording Started')
+						.setDescription(
+							`🔴 Recording in **${voiceChannel.name}**`
+						)
+						.setColor(branding.SuccessColor!),
+				],
+				flags: MessageFlags.Ephemeral,
+			});
+		} catch (error) {
+			await interaction.reply({
+				embeds: [
+					new EmbedBuilder()
+						.setTitle('❌ Error')
+						.setDescription(
+							'Failed to join the voice channel and start recording.'
+						)
+						.setColor(branding.AccentColor!),
+				],
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 	},
 };
