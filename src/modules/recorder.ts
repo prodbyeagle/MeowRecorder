@@ -1,13 +1,12 @@
 import { createWriteStream, promises as fs } from 'fs';
 import path from 'path';
+import { WAVConverter } from '@/modules/wav-converter';
 import {
 	EndBehaviorType,
 	VoiceConnection,
 	VoiceReceiver,
 } from '@discordjs/voice';
 import prism from 'prism-media';
-
-import { WAVConverter } from '@/logic/wav-converter';
 
 export const startRecording = async (
 	connection: VoiceConnection,

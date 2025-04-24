@@ -1,11 +1,10 @@
 import type { MeowClient } from '@/client';
+import { loadConfig } from '@/modules/configManager';
+import { startRecording } from '@/modules/recorder';
 import { joinVoiceChannel, VoiceConnectionStatus } from '@discordjs/voice';
 import { Events, VoiceState } from 'discord.js';
 
 import { logMessage } from '@/lib/utils';
-
-import { loadConfig } from '@/logic/configManager';
-import { startRecording } from '@/logic/recorder';
 
 /**
  * Registers the voiceStateUpdate event for auto-join and recording.
