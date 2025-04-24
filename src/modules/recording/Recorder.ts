@@ -15,94 +15,79 @@ import { SilenceFiller } from '@/modules/recording/SilenceFiller';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface RecorderOptions {
+	/** Output format (mp3|wav) */
 	format?: 'mp3' | 'wav';
+	/** kbps for mp3 */
 	bitrate?: number;
+	/** input sample rate in Hz */
 	sampleRate?: number;
+	/** output channels (1 or 2) */
 	channels?: number;
-	playbackRate?: number;
-}
-
-function buildAtempoFilter(rate: number): string {
-	const parts: string[] = [];
-	let r = rate;
-	while (r > 2.0) {
-		parts.push('atempo=2.0');
-		r /= 2.0;
-	}
-	while (r < 0.5) {
-		parts.push('atempo=0.5');
-		r /= 0.5;
-	}
-	parts.push(`atempo=${r.toFixed(2)}`);
-	return parts.join(',');
+	/** playback speed: 1=normal */
+	gain?: number;
+	/** high-pass cutoff (Hz) to remove low-end rumble */
+	highPassHz?: number;
 }
 
 /**
  * Start recording a user's audio from a Discord VoiceConnection.
  *
- * Records continuous PCM (with silence), encodes via ffmpeg,
- * applies atempo filter if playbackRate ≠ 1, and writes out a file.
+ * @returns a `stop()` fn that will tear down only _that_ user’s pipeline
  */
 export async function startRecording(
 	connection: VoiceConnection,
 	userId: string,
 	opts: RecorderOptions = {}
 ): Promise<() => Promise<void>> {
-	const format = opts.format ?? 'mp3';
-	const bitrate = opts.bitrate ?? 320;
-	const sampleRate = opts.sampleRate ?? 48000;
-	const channels = opts.channels ?? 2;
-	const rate = opts.playbackRate ?? 1;
+	const { format = 'mp3', bitrate = 320, sampleRate = 48_000 } = opts;
 
-	const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-	const outDir = path.resolve(__dirname, '../../../recordings', userId);
-	await fs.promises.mkdir(outDir, { recursive: true });
-	const outPath = path.join(outDir, `${timestamp}.${format}`);
+	const ts = new Date().toISOString().replace(/[:.]/g, '-');
+	const dir = path.resolve(__dirname, '../../../recordings', userId);
+	await fs.promises.mkdir(dir, { recursive: true });
+	const outPath = path.join(dir, `${ts}.${format}`);
 
 	const receiver: VoiceReceiver = connection.receiver;
-	const opus = receiver
+	const opusStream = receiver
 		.subscribe(userId, { end: { behavior: EndBehaviorType.Manual } })
 		.on('error', console.error);
 
 	const decoder = new prism.opus.Decoder({
 		rate: sampleRate,
-		channels,
+		channels: 1,
 		frameSize: 960,
 	}).on('error', console.error);
 
-	const frameBytes = 960 * channels * 2;
-	const frameMs = (960 / sampleRate) * 1000;
+	const frameBytes = 960 * 1 * 2;
+	const frameMs = (960 / sampleRate) * 1_000;
 	const filler = new SilenceFiller({
 		frameSize: frameBytes,
 		frameIntervalMs: frameMs,
 	}).on('error', console.error);
 
 	const ff = Ffmpeg()
-		.setFfmpegPath(ffmpegPath ?? '')
+		.setFfmpegPath(ffmpegPath || '')
 		.input(filler)
 		.inputFormat('s16le')
-		.audioChannels(channels)
+		.audioChannels(1)
 		.audioFrequency(sampleRate)
 		.audioBitrate(bitrate)
 		.format(format);
 
-	if (rate !== 1) ff.audioFilters(buildAtempoFilter(rate));
-
-	const finishPromise = new Promise<void>((res, rej) => {
-		ff.on('end', () => {
+	const done = new Promise<void>((resolve, reject) => {
+		ff.once('end', () => {
 			console.log(`✅ Saved ${outPath}`);
-			res();
+			resolve();
 		});
-		ff.on('error', rej);
+		ff.once('error', reject);
 	});
 
 	ff.save(outPath);
-	opus.pipe(decoder).pipe(filler);
+	opusStream.pipe(decoder).pipe(filler);
 
 	return async () => {
-		opus.destroy();
+		opusStream.destroy();
 		decoder.destroy();
 		filler.end();
-		await finishPromise;
+		await done;
 	};
 }
