@@ -19,3 +19,9 @@ export interface ICommand {
 	autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
 	execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }
+
+export interface ConfigEntry {
+	guildId: string;
+	userId: string;
+	channelId: string;
+}
