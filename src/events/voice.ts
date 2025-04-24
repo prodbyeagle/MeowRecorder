@@ -1,6 +1,6 @@
 import type { MeowClient } from '@/client';
 import { loadConfig } from '@/modules/configManager';
-import { startRecording } from '@/modules/recorder';
+import { startRecording } from '@/recording/Recorder';
 import { joinVoiceChannel, VoiceConnectionStatus } from '@discordjs/voice';
 import { Events, VoiceState } from 'discord.js';
 

@@ -1,4 +1,4 @@
-import { startRecording } from '@/modules/recorder';
+import { startRecording } from '@/recording/Recorder';
 import { joinVoiceChannel } from '@discordjs/voice';
 import {
 	ChatInputCommandInteraction,
