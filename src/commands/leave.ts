@@ -10,6 +10,8 @@ import { MeowClient } from '@/client';
 
 import { branding } from '@/lib/config';
 
+import { _stopRecording } from '@/modules/recording/Recorder';
+
 import type { ICommand } from '@/types';
 
 export const leaveCommand: ICommand = {
@@ -34,9 +36,13 @@ export const leaveCommand: ICommand = {
 			});
 			return;
 		}
+
 		const client = interaction.client as MeowClient;
-		const stopper = client.manualStopper.get(guildId);
-		if (!stopper) {
+		const userId = interaction.user.id;
+
+		try {
+			await _stopRecording(userId);
+		} catch (error) {
 			const embed = new EmbedBuilder()
 				.setTitle('Nothing to Stop')
 				.setDescription('There is no active recording to stop.')
@@ -47,8 +53,12 @@ export const leaveCommand: ICommand = {
 			});
 			return;
 		}
-		await stopper();
-		client.manualStopper.delete(guildId);
+
+		const voiceConnection = client.voice.adapters.get(guildId);
+		if (voiceConnection) {
+			voiceConnection.destroy();
+		}
+
 		const embed = new EmbedBuilder()
 			.setTitle('Left & Stopped Recording')
 			.setDescription(
