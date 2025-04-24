@@ -1,5 +1,7 @@
 import { Transform, type TransformCallback } from 'stream';
 
+import { logMessage } from '@/lib/utils';
+
 export interface SilenceFillerOptions {
 	/** bytes per PCM frame (samples×channels×2) */
 	frameSize: number;
@@ -24,12 +26,18 @@ export class SilenceFiller extends Transform {
 		this.intervalMs = opts.frameIntervalMs;
 		this.silenceFrame = Buffer.alloc(opts.frameSize, 0);
 		this.nextPushTime = Date.now() + this.intervalMs;
+
+		logMessage(
+			`SilenceFiller initialized (frameSize=${this.frameSize}, intervalMs=${this.intervalMs})`,
+			'info'
+		);
 		this.scheduleNextPush();
 	}
 
 	private scheduleNextPush() {
 		const now = Date.now();
 		const delay = Math.max(0, this.nextPushTime - now);
+
 		setTimeout(() => {
 			this.pushFrame();
 			this.nextPushTime += this.intervalMs;
@@ -42,29 +50,48 @@ export class SilenceFiller extends Transform {
 			const frame = this.buffer.subarray(0, this.frameSize);
 			this.push(frame);
 			this.buffer = this.buffer.subarray(this.frameSize);
+			logMessage(`Pushed audio frame (${frame.length} bytes)`, 'info');
 		} else {
 			this.push(this.silenceFrame);
+			logMessage(
+				`Inserted silence frame (${this.silenceFrame.length} bytes)`,
+				'info'
+			);
 		}
 	}
 
 	_transform(chunk: Buffer, _enc: BufferEncoding, cb: TransformCallback) {
 		this.buffer = Buffer.concat([this.buffer, chunk]);
+		logMessage(
+			`Received chunk (${chunk.length} bytes), buffer size: ${this.buffer.length}`,
+			'info'
+		);
 		cb();
 	}
 
 	_flush(cb: TransformCallback) {
-		// Flush remaining buffer
+		logMessage(
+			`Flushing buffer: ${this.buffer.length} bytes remaining`,
+			'info'
+		);
+
 		while (this.buffer.length >= this.frameSize) {
 			const frame = this.buffer.subarray(0, this.frameSize);
 			this.push(frame);
 			this.buffer = this.buffer.subarray(this.frameSize);
+			logMessage(`Flushed audio frame (${frame.length} bytes)`, 'info');
 		}
-		// Pad with silence if needed
+
 		if (this.buffer.length > 0) {
 			const pad = Buffer.alloc(this.frameSize - this.buffer.length, 0);
 			const lastFrame = Buffer.concat([this.buffer, pad]);
 			this.push(lastFrame);
+			logMessage(
+				`Flushed padded final frame (original: ${this.buffer.length}, padded: ${lastFrame.length})`,
+				'info'
+			);
 		}
+
 		cb();
 	}
 }
