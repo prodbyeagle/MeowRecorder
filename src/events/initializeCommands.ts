@@ -1,8 +1,9 @@
 import { REST, Routes } from 'discord.js';
 
 import { autojoinCommand } from '@/commands/autojoin';
-import { joinCommand } from '@/commands/join';
-import { leaveCommand } from '@/commands/leave';
+
+// import { joinCommand } from '@/commands/join';
+// import { leaveCommand } from '@/commands/leave';
 
 import { MeowClient } from '@/client';
 
@@ -17,8 +18,8 @@ export const initializeCommands = async (client: MeowClient) => {
 	const commands = new Map<string, ICommand>();
 
 	const allCommands: ICommand[] = [
-		joinCommand,
-		leaveCommand,
+		// joinCommand,
+		// leaveCommand,
 		autojoinCommand,
 	];
 
