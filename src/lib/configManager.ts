@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-import type { ConfigEntry } from '@/types/Config';
+import type { ConfigEntry } from '@/types';
 
 const CONFIG_PATH = path.resolve(import.meta.dir, '../../config.json');
 
