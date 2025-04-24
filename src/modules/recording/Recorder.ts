@@ -55,12 +55,12 @@ export async function startRecording(
 	const rate = opts.playbackRate ?? 1;
 
 	const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-	const userDir = path.resolve(__dirname, '../../recordings', userId);
-	await fs.promises.mkdir(userDir, { recursive: true });
-	const outPath = path.join(userDir, `${timestamp}.${format}`);
+	const outDir = path.resolve(__dirname, '../../../recordings', userId);
+	await fs.promises.mkdir(outDir, { recursive: true });
+	const outPath = path.join(outDir, `${timestamp}.${format}`);
 
 	const receiver: VoiceReceiver = connection.receiver;
-	const opusStream = receiver
+	const opus = receiver
 		.subscribe(userId, { end: { behavior: EndBehaviorType.Manual } })
 		.on('error', console.error);
 
@@ -86,30 +86,23 @@ export async function startRecording(
 		.audioBitrate(bitrate)
 		.format(format);
 
-	if (rate !== 1) {
-		ff.audioFilters(buildAtempoFilter(rate));
-	}
+	if (rate !== 1) ff.audioFilters(buildAtempoFilter(rate));
 
-	const finishPromise = new Promise<void>((resolve, reject) => {
+	const finishPromise = new Promise<void>((res, rej) => {
 		ff.on('end', () => {
 			console.log(`✅ Saved ${outPath}`);
-			resolve();
+			res();
 		});
-		ff.on('error', reject);
+		ff.on('error', rej);
 	});
 
 	ff.save(outPath);
-
-	opusStream.pipe(decoder).pipe(filler);
+	opus.pipe(decoder).pipe(filler);
 
 	return async () => {
-		try {
-			opusStream.destroy();
-			decoder.destroy();
-			filler.end();
-			await finishPromise;
-		} finally {
-			connection.destroy();
-		}
+		opus.destroy();
+		decoder.destroy();
+		filler.end();
+		await finishPromise;
 	};
 }
