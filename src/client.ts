@@ -8,7 +8,6 @@ import type { ICommand } from '@/types';
  */
 export class MeowClient extends Client {
 	public commands: Collection<string, ICommand> = new Collection();
-	public manualStopper: Map<string, () => Promise<void>> = new Map();
 
 	constructor() {
 		super({
