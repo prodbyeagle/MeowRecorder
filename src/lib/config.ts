@@ -6,7 +6,7 @@ export const config = {
 	supabaseKey: process.env.ANON_KEY || 'anon_key',
 	databaseUrl: process.env.DATABASE_URL || 'database_url',
 	dev: true,
-	recordingChannel: '1260983989070594159',
+	recordingChannel: '1365111820104503356',
 };
 
 //? all colors for embeds.
