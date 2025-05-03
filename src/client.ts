@@ -3,7 +3,7 @@ import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import type { ICommand } from '@/types';
 
 /**
- * Custom Discord client class for the ChillyBot.
+ * Custom Discord client class for the Meow Recorder Bot.
  * Extends the base `Client` class from discord.js and adds additional functionality.
  */
 export class MeowClient extends Client {
